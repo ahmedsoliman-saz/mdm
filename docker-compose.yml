@@ -1,0 +1,6 @@
+services:
+  mdm-app:
+    build: .
+    ports:
+      - "5300:80"
+    restart: unless-stopped
