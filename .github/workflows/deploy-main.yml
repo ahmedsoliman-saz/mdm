@@ -45,18 +45,18 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_MDM_PRIVATE_KEY }}
 
-      - name: Add server host key
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -p "${SSH_PORT}" -H "${SSH_HOST}" >> ~/.ssh/known_hosts
-
+      # No ssh-keyscan: it often exits 1 from Actions (firewall, timeout, server quirks).
+      # accept-new stores the host key on first successful connect (OpenSSH 8+).
       - name: Ensure remote directory exists
         run: |
-          ssh -p "${SSH_PORT}" "${SSH_USER}@${SSH_HOST}" "mkdir -p '${SSH_DEPLOY_PATH}'"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh -p "${SSH_PORT}" -o StrictHostKeyChecking=accept-new \
+            "${SSH_USER}@${SSH_HOST}" "mkdir -p '${SSH_DEPLOY_PATH}'"
 
       - name: Deploy static files (rsync)
         env:
-          RSYNC_RSH: ssh -p ${SSH_PORT} -o StrictHostKeyChecking=yes
+          RSYNC_RSH: ssh -p ${{ env.SSH_PORT }} -o StrictHostKeyChecking=accept-new
         run: |
           rsync -avz --delete \
             dist/ \
