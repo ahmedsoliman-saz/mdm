@@ -12,17 +12,18 @@ dist
 dist-ssr
 *.local
 
-# SSH keys (do not commit)
-crm-vm-local_key.pem
-
 # Editor directories and files
-.vs
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.tmp
+
+# Environment
+.env*

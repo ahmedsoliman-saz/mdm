@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//d/Projects/Sazience/MDM/mdm_platform/**)",
+      "Read(//d/Projects/Sazience/MDM/**)",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(powershell -Command \".\\\\.specify\\\\scripts\\\\powershell\\\\create-new-feature.ps1 'sazience-mdm-prototype-prompt.md' -Json -ShortName 'mdm-react-prototype' 'Build the full Sazience MDM React prototype with 20 interactive screens, mock data, and complete navigation'\")",
+      "Bash(powershell:*)",
+      "WebSearch",
+      "Bash(powershell.exe -File \".specify/scripts/powershell/check-prerequisites.ps1\" -Json)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}

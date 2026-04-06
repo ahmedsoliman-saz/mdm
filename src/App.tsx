@@ -1,12 +1,11 @@
-import './App.css'
-import { MdmHello } from './components/MdmHello'
+import { StyleProvider } from '@ant-design/cssinjs';
+import { RouterProvider } from 'react-router-dom';
+import { router } from './routes';
 
-function App() {
+export default function App() {
   return (
-    <main className="app">
-      <MdmHello />
-    </main>
-  )
+    <StyleProvider hashPriority="high">
+      <RouterProvider router={router} />
+    </StyleProvider>
+  );
 }
-
-export default App
