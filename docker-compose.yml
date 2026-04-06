@@ -2,5 +2,5 @@ services:
   mdm-app:
     build: .
     ports:
-      - "5300:80"
+      - "${APP_PORT:-5300}:80"
     restart: unless-stopped

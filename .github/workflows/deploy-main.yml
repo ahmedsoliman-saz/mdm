@@ -1,16 +1,10 @@
-# Deploy on push to main: build app, sync dist/ to server over SSH.
+# Deploy on push to main: verify build, sync app to VM, run Docker Compose (host port 5300).
 #
-# Required GitHub secret:
-#   SSH_MDM_PRIVATE_KEY — full contents of crm-vm-local_key.pem (including BEGIN/END lines)
+# Secret (only this key is used):
+#   SSH_MDM_PRIVATE_KEY — full PEM private key for SSH to the VM
 #
-# Edit SSH_DEPLOY_PATH below (use an absolute path — ~ breaks in CI SSH quoting).
-#
-# SSH vs Docker port:
-# - sshd on the VM almost always listens on port 22 (unless you changed /etc/ssh/sshd_config).
-# - Port 6666 is usually "docker run -p 6666:80 …" — your *web app*, not SSH.
-# - GitHub Actions must reach sshd: open Azure NSG inbound TCP 22 (or your custom SSH port)
-#   from GitHub Actions IP ranges (https://api.github.com/meta → "actions"), or use a self-hosted runner.
-# - If you really run sshd on 6666, set SSH_PORT to "6666" and allow that port in the NSG.
+# Server: Docker Compose v2; user must run Docker (docker group or sudo).
+# NSG: TCP 22 for GitHub Actions; TCP 5300 for the web app.
 #
 name: Deploy main
 
@@ -26,7 +20,10 @@ concurrency:
 env:
   SSH_HOST: 20.203.101.209
   SSH_USER: azureuser
+  # SSH (deploy); not the same as APP_PORT below.
   SSH_PORT: "22"
+  # Published HTTP port for the Docker app (must match docker-compose host port).
+  APP_PORT: "5300"
   SSH_DEPLOY_PATH: /home/azureuser/mdm-app
 
 jobs:
@@ -42,7 +39,7 @@ jobs:
           node-version: "20"
           cache: npm
 
-      - name: Install and build
+      - name: Install and build (fail before deploy)
         run: |
           npm ci
           npm run build
@@ -52,8 +49,6 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_MDM_PRIVATE_KEY }}
 
-      # No ssh-keyscan: it often exits 1 from Actions (firewall, timeout, server quirks).
-      # accept-new stores the host key on first successful connect (OpenSSH 8+).
       - name: Ensure remote directory exists
         run: |
           mkdir -p ~/.ssh
@@ -61,10 +56,22 @@ jobs:
           ssh -p "${SSH_PORT}" -o StrictHostKeyChecking=accept-new \
             "${SSH_USER}@${SSH_HOST}" "mkdir -p '${SSH_DEPLOY_PATH}'"
 
-      - name: Deploy static files (rsync)
+      - name: Sync project to server
         env:
           RSYNC_RSH: ssh -p ${{ env.SSH_PORT }} -o StrictHostKeyChecking=accept-new
         run: |
           rsync -avz --delete \
-            dist/ \
-            "${SSH_USER}@${SSH_HOST}:${SSH_DEPLOY_PATH}/"
+            --exclude node_modules \
+            --exclude .git \
+            --exclude dist \
+            --exclude .github \
+            --exclude '*.pem' \
+            --exclude '.env' \
+            --exclude '.env.*' \
+            ./ "${SSH_USER}@${SSH_HOST}:${SSH_DEPLOY_PATH}/"
+
+      - name: Build and start containers on server (port 5300)
+        run: |
+          ssh -p "${SSH_PORT}" -o StrictHostKeyChecking=accept-new \
+            "${SSH_USER}@${SSH_HOST}" \
+            "cd '${SSH_DEPLOY_PATH}' && APP_PORT=5300 docker compose up -d --build --remove-orphans"
