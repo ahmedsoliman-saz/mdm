@@ -5,6 +5,13 @@
 #
 # Edit SSH_DEPLOY_PATH below (use an absolute path — ~ breaks in CI SSH quoting).
 #
+# SSH vs Docker port:
+# - sshd on the VM almost always listens on port 22 (unless you changed /etc/ssh/sshd_config).
+# - Port 6666 is usually "docker run -p 6666:80 …" — your *web app*, not SSH.
+# - GitHub Actions must reach sshd: open Azure NSG inbound TCP 22 (or your custom SSH port)
+#   from GitHub Actions IP ranges (https://api.github.com/meta → "actions"), or use a self-hosted runner.
+# - If you really run sshd on 6666, set SSH_PORT to "6666" and allow that port in the NSG.
+#
 name: Deploy main
 
 on:
@@ -19,7 +26,7 @@ concurrency:
 env:
   SSH_HOST: 20.203.101.209
   SSH_USER: azureuser
-  SSH_PORT: "6666"
+  SSH_PORT: "22"
   SSH_DEPLOY_PATH: /home/azureuser/mdm-app
 
 jobs:
